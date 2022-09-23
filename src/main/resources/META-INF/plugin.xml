@@ -40,7 +40,7 @@
         </intentionAction>
 
         <codeInsight.template.postfixTemplateProvider language="JAVA" implementationClass="cn.gudqs7.plugins.generate.postfix.GeneratePostfixTemplateProvider"/>
-        
+
         <searchEverywhereContributor implementation="cn.gudqs7.plugins.search.ApiSearchContributorFactory"/>
 
         <errorHandler implementation="cn.gudqs7.plugins.diagnostic.SaviorIssueSubmitter"/>
@@ -49,7 +49,9 @@
     <actions>
         <group id="cn.gudqs.docer.savior" text="Api Savior Group">
             <add-to-group group-id="EditorPopupMenu" anchor="after" relative-to-action="ShowIntentionsGroup"/>
-
+            <action id="cn.gudqs7.docer.savior.req.json-rpc" class="cn.gudqs7.plugins.savior.action.rpc.JsonRpcSaviorAction"
+                    text="Generate JSON-RPC CURL" description="123">
+            </action>
             <action id="cn.gudqs.docer.savior.req.rpc" class="cn.gudqs7.plugins.savior.action.rpc.RpcReqDocSaviorAction"
                     text="Generate RPC Param Doc" description="Generate RPC request parameter documentation">
             </action>
