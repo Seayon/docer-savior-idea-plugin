@@ -13,4 +13,8 @@ public class ThemeHelper {
         return RestfulTheme.getInstance();
     }
 
+    public static Theme getJsonRpcTheme() {
+        return JsonRpcTheme.getInstance();
+    }
+
 }

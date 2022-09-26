@@ -16,10 +16,10 @@ import com.intellij.psi.PsiMethod;
  */
 
 public class JsonRpcSaviorAction extends AbstractDocerSavior {
-    private JavaToJsonRpcCurlSavior javaToJsonRpcCurlSavior = new JavaToJsonRpcCurlSavior(ThemeHelper.getRpcTheme());
+    private JavaToJsonRpcCurlSavior javaToJsonRpcCurlSavior = new JavaToJsonRpcCurlSavior(ThemeHelper.getJsonRpcTheme());
 
     public JsonRpcSaviorAction() {
-        super(ThemeHelper.getRpcTheme());
+        super(ThemeHelper.getJsonRpcTheme());
     }
 
     @Override

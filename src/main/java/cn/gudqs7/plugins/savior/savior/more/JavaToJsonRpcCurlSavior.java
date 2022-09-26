@@ -10,8 +10,16 @@ import cn.gudqs7.plugins.savior.reader.Java2BulkReader;
 import cn.gudqs7.plugins.savior.savior.base.AbstractSavior;
 import cn.gudqs7.plugins.savior.theme.Theme;
 import cn.gudqs7.plugins.savior.util.RestfulUtil;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonParser;
 import com.intellij.openapi.project.Project;
 import com.intellij.psi.PsiMethod;
+import org.apache.commons.collections.CollectionUtils;
 
 import java.util.HashMap;
 import java.util.List;
@@ -48,44 +56,38 @@ public class JavaToJsonRpcCurlSavior extends AbstractSavior<String> {
     @Override
     protected String getDataByStructureAndCommentInfo(Project project, PsiMethod publicMethod, CommentInfo commentInfo, String interfaceClassName, StructureAndCommentInfo paramStructureAndCommentInfo, StructureAndCommentInfo returnStructureAndCommentInfo, Map<String, Object> param) {
         String url = commentInfo.getUrl("");
-        String contentType = commentInfo.getContentType(theme.getDefaultContentType());
-        String method = commentInfo.getMethod("");
-        String method0 = RestfulUtil.getFirstMethod(method);
-        boolean firstMethodIsGet = RequestMapping.Method.GET.equals(method0);
-
-        HashMap<String, Object> data = new HashMap<>(2);
-        data.put("removeRequestBody", true);
-        List<PostmanKvInfo> queryList = java2BulkReader.read(paramStructureAndCommentInfo, data);
-        List<PostmanKvInfo> kvList = java2BulkReader.read(paramStructureAndCommentInfo);
-
         Boolean onlyRequire = (Boolean) param.get("onlyRequire");
-
-        String query = RestfulUtil.getUrlQuery(queryList, onlyRequire);
-
-        String curl = "";
-        if (firstMethodIsGet) {
-            // 纯 GET, 参数拼接到 url 后面
-            curl = String.format("curl --location --request GET '%s'", url + query);
-        } else {
-            switch (contentType) {
-                case RequestMapping.ContentType.APPLICATION_JSON:
-                    // POST + requestBody
-                    String raw = getRaw(paramStructureAndCommentInfo, onlyRequire);
-                    curl = String.format("curl --location --request POST '%s' --header 'Content-Type: application/json' --data-raw '%s'", url + query, raw);
-            }
-        }
-        return curl;
+        // POST + requestBody
+        String raw = getRaw(paramStructureAndCommentInfo, onlyRequire);
+        String jsonRpcRawBody = String.format(JSON_RPC_2_0_TEMPLATE, publicMethod.getNameIdentifier().getText(), raw);
+        Gson gson = new GsonBuilder().setPrettyPrinting().create();
+        JsonParser jp = new JsonParser();
+        JsonElement je = jp.parse(jsonRpcRawBody);
+        jsonRpcRawBody =  gson.toJson(je);
+        return String.format("curl --location --request POST '%s' \\ \n" +
+                "--header 'Content-Type: application/json' \\\n" +
+                "--data-raw '%s'", url, jsonRpcRawBody);
     }
+
+    public static final String JSON_RPC_2_0_TEMPLATE = "{\n" +
+            "    \"method\": \"%s\",\n" +
+            "    \"jsonrpc\": \"2.0\",\n" +
+            "    \"params\": \n" +
+            "        %s\n" +
+            "    ,\n" +
+            "    \"id\": 0\n" +
+            "}";
 
     private String getRaw(StructureAndCommentInfo paramStructureAndCommentInfo, Boolean onlyRequire) {
         HashMap<String, Object> data = new HashMap<>(2);
         data.put("onlyRequire", onlyRequire);
         Map<String, Object> java2jsonMap = java2JsonReader.read(paramStructureAndCommentInfo, data);
-        Object key = java2jsonMap.get(MapKeyConstant.HAS_REQUEST_BODY);
-        if (key instanceof String) {
-            String key0 = (String) key;
-            return JsonUtil.toJson(java2jsonMap.get(key0));
-        }
-        return null;
+        ObjectMapper objectMapper = new ObjectMapper();
+        ArrayNode paramsNode = new ArrayNode(objectMapper.getNodeFactory());
+        java2jsonMap.forEach((key, value) -> {
+            JsonNode argNode = objectMapper.valueToTree(value);
+            paramsNode.add(argNode);
+        });
+        return paramsNode.toString();
     }
 }
